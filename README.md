@@ -21,20 +21,25 @@ A fast, intelligent, and zero-configuration Chrome Extension that automatically 
 
 ---
 
-## How to Install in Chrome
+## How to Install (Chrome / Brave / Edge)
 
-1. Open Google Chrome.
-2. Navigate to:
-   ```text
-   chrome://extensions/
-   ```
-3. Enable **Developer mode** using the toggle in the top-right corner.
-4. Click the **Load unpacked** button in the top-left corner.
-5. Select this folder:
-   ```text
-   C:\Users\arpit\OneDrive\Documents\code\feedback cuims
-   ```
-6. The extension **CUIMS Auto Feedback** is now installed and active! Pin it to your Chrome toolbar for quick access.
+### Option 1: Quick Install via Release (Recommended for students)
+1. Go to the [Releases](https://github.com/) tab on this repository and download the latest **`cuims-auto-feedback-v1.0.1.zip`**.
+2. Unzip/extract the downloaded archive to a folder on your computer.
+3. Open your browser and navigate to the extensions page:
+   - **Chrome**: `chrome://extensions/`
+   - **Brave**: `brave://extensions/`
+   - **Edge**: `edge://extensions/`
+4. Turn **ON** the **Developer mode** toggle (usually in the top-right corner).
+5. Click the **Load unpacked** button.
+6. Select the unzipped folder containing `manifest.json`.
+7. Done! Pin **CUIMS Auto Feedback** to your browser toolbar for easy access.
+
+### Option 2: Clone from Source
+```bash
+git clone https://github.com/arpitsaxenawork/cuims-auto-feedback.git
+```
+Then follow steps 3–6 above selecting the cloned repository folder.
 
 ---
 

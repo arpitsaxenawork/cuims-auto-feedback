@@ -330,6 +330,7 @@
 
       // Tight fallback timeout (500ms - 800ms) to prevent hanging
       setTimeout(() => {
+        dismissSuccessPopup(document);
         const bodyText = (document.body.innerText || "").toLowerCase();
         const found = SUCCESS_KEYWORDS.some((kw) => bodyText.includes(kw));
         const modalClosed = wasInDOM && (!document.body.contains(container) || container.style.display === "none");
@@ -344,12 +345,85 @@
     });
   }
 
+  /**
+   * Automatically detects and clicks "OK" / "Close" on CUIMS success popups and dialogs
+   */
+  function dismissSuccessPopup(rootDoc = document) {
+    let dismissed = false;
+
+    // 1. SweetAlert / SweetAlert2 confirm buttons
+    const swalButtons = Array.from(
+      rootDoc.querySelectorAll(
+        '.swal2-confirm, .swal-button--confirm, button.confirm, .swal2-close, .swal-button, .swal2-actions button'
+      )
+    );
+    for (const btn of swalButtons) {
+      if (btn && btn.offsetParent !== null) { // visible
+        try {
+          btn.focus();
+          btn.click();
+          dismissed = true;
+          break;
+        } catch (e) {}
+      }
+    }
+
+    // 2. Active Bootstrap / CUIMS / ASP.NET Modal Dialogs
+    const activeModals = Array.from(
+      rootDoc.querySelectorAll(
+        '.modal.show, .modal.in, [role="dialog"]:not([style*="display: none"]), .swal2-container, div[id*="popup" i]:not([style*="display: none"]), div[id*="modal" i]:not([style*="display: none"]), div[id*="alert" i]:not([style*="display: none"])'
+      )
+    );
+
+    for (const modal of activeModals) {
+      const modalButtons = Array.from(
+        modal.querySelectorAll(
+          'button, input[type="button"], input[type="submit"], a.btn, [data-dismiss="modal"], [data-bs-dismiss="modal"], .close'
+        )
+      );
+
+      for (const b of modalButtons) {
+        const text = (b.value || b.innerText || b.getAttribute("aria-label") || "").toLowerCase().trim();
+        if (["ok", "okay", "close", "done", "continue", "proceed", "got it", "dismiss", "×"].some((kw) => text === kw || text.includes(kw))) {
+          try {
+            b.focus();
+            b.click();
+            dismissed = true;
+            break;
+          } catch (e) {}
+        }
+      }
+
+      // Fallback: if no labeled OK button, click the first button in modal
+      if (!dismissed && modalButtons.length > 0) {
+        try {
+          modalButtons[0].click();
+          dismissed = true;
+        } catch (e) {}
+      }
+    }
+
+    // 3. Remove any lingering backdrop overlays so subsequent forms are clickable
+    const backdrops = Array.from(
+      rootDoc.querySelectorAll('.modal-backdrop, .swal2-backdrop-show, .ajax__modalPopupBackground, .modalBackground')
+    );
+    for (const bg of backdrops) {
+      try {
+        bg.style.display = "none";
+        bg.remove();
+      } catch (e) {}
+    }
+
+    return dismissed;
+  }
+
   return {
     generateFormFingerprint,
     validateQuestions,
     checkDuplicateSubmission,
     recordSubmission,
     findSubmitButton,
-    submitAndVerify
+    submitAndVerify,
+    dismissSuccessPopup
   };
 });

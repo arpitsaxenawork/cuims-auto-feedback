@@ -437,9 +437,23 @@
       submittedCount++;
       console.log(`[Simulator] Card ${cardId} submitted. (${submittedCount}/${totalCards})`);
 
+      // Trigger realistic CUIMS success modal popup
+      openCuimsModal(cardId);
+
       if (submittedCount >= totalCards) {
         document.getElementById("allDoneBanner").style.display = "block";
       }
+    }
+
+    function openCuimsModal(cardId) {
+      const modal = document.getElementById("cuimsSuccessModal");
+      modal.style.display = "flex";
+    }
+
+    function closeCuimsModal() {
+      const modal = document.getElementById("cuimsSuccessModal");
+      modal.style.display = "none";
+      console.log("[Simulator] Success popup dismissed with OK.");
     }
 
     function switchMode(mode) {
@@ -459,5 +473,15 @@
       }
     }
   </script>
+
+  <!-- Realistic CUIMS Modal Success Popup -->
+  <div id="cuimsSuccessModal" class="modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 9999; background: rgba(0,0,0,0.5); align-items: center; justify-content: center;">
+    <div style="background: white; border-radius: 8px; padding: 24px; max-width: 420px; width: 90%; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+      <div style="font-size: 36px; color: #16a34a; margin-bottom: 10px;">✓</div>
+      <h3 style="margin: 0 0 10px 0; color: #1e293b; font-size: 18px;">Feedback Submitted Successfully</h3>
+      <p style="color: #64748b; font-size: 13px; margin-bottom: 20px;">Your academic evaluation has been recorded into the CUIMS database.</p>
+      <button class="btn-submit" onclick="closeCuimsModal()" style="background: #16a34a; padding: 10px 32px; font-size: 14px; border-radius: 4px;">OK</button>
+    </div>
+  </div>
 </body>
 </html>

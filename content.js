@@ -142,9 +142,18 @@
           }).catch(() => {});
         }
 
+        // Automatically dismiss success popup / modal ("Feedback submitted successfully") to unlock next form
+        await new Promise((resolve) => setTimeout(resolve, 300));
+        if (window.CUIMS_SubmitVerifier?.dismissSuccessPopup) {
+          window.CUIMS_SubmitVerifier.dismissSuccessPopup(document);
+        }
+
         // Sequential interval to let ASP.NET / server settle between multiple submissions
         if (i < totalUnits - 1) {
-          await new Promise((resolve) => setTimeout(resolve, config.multiFormIntervalMs || 350));
+          await new Promise((resolve) => setTimeout(resolve, config.multiFormIntervalMs || 400));
+          if (window.CUIMS_SubmitVerifier?.dismissSuccessPopup) {
+            window.CUIMS_SubmitVerifier.dismissSuccessPopup(document);
+          }
         }
       }
 

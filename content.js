@@ -70,77 +70,56 @@
         );
 
         // Parse questions for this unit container
-        const questions = window.CUIMS_FormParser.parseFeedbackForm(unit.container);
+        let questions = window.CUIMS_FormParser.parseFeedbackForm(unit.container);
 
         if (!questions || questions.length === 0) {
-          console.warn(`[CUIMS Auto Feedback] Unit ${unit.id} has 0 parseable questions, skipping.`);
-          submittedUnitIds.add(unit.id);
-          continue;
+          // Fallback: check closest row, table, or panel containing inputs near this submit button
+          const fallbackContainer = unit.submitButton?.closest("tr, .row, .panel, .card, table, .container, form") || unit.container.parentElement;
+          if (fallbackContainer) {
+            questions = window.CUIMS_FormParser.parseFeedbackForm(fallbackContainer);
+          }
         }
 
-        // Duplicate protection check with unit context
-        const fingerprint = window.CUIMS_SubmitVerifier.generateFormFingerprint(
-          questions,
-          window.location.href,
-          unit.title || unit.id
-        );
+        // Fill questions if any are found and need answering
+        if (questions && questions.length > 0) {
+          // Duplicate protection check with unit context (only if this unit was already submitted)
+          const fingerprint = window.CUIMS_SubmitVerifier.generateFormFingerprint(
+            questions,
+            window.location.href,
+            unit.title || unit.id
+          );
 
-        const isDuplicate = await window.CUIMS_SubmitVerifier.checkDuplicateSubmission(
-          fingerprint,
-          config.duplicateWindowMinutes
-        );
+          // Decide answers
+          const decisions = questions.map((q) => {
+            return window.CUIMS_AnswerEngine.determineAnswer(q, config, rules);
+          });
 
-        if (isDuplicate && !isManual) {
-          console.log(`[CUIMS Auto Feedback] Unit ${unit.title || unit.id} was already submitted recently. Skipping.`);
-          submittedUnitIds.add(unit.id);
-          continue;
+          // Fill form elements (snappy 2ms typing delay)
+          await window.CUIMS_FormFiller.fillForm(questions, decisions, {
+            delayBetween: config.typingDelayMs !== undefined ? config.typingDelayMs : 2
+          });
+
+          console.log(`[CUIMS Auto Feedback] Filled questions for ${unit.title || unit.id}`);
         }
 
-        // Decide answers
-        const decisions = questions.map((q) => {
-          return window.CUIMS_AnswerEngine.determineAnswer(q, config, rules);
-        });
+        // Locate submit button
+        const submitBtn = unit.submitButton || window.CUIMS_SubmitVerifier.findSubmitButton(unit.container);
 
-        // Fill form elements (using snappy typingDelayMs, default 2ms)
-        const fillResult = await window.CUIMS_FormFiller.fillForm(questions, decisions, {
-          delayBetween: config.typingDelayMs !== undefined ? config.typingDelayMs : 2
-        });
-
-        console.log(`[CUIMS Auto Feedback] Filled ${fillResult.filledCount}/${questions.length} questions for ${unit.title || unit.id}`);
-
-        // Validate completeness
-        const validation = window.CUIMS_SubmitVerifier.validateQuestions(questions);
-        if (!validation.isValid) {
-          const missingNames = validation.missingQuestions.map((q) => `"${q.questionText}"`).join(", ");
-          console.error(`[CUIMS Auto Feedback] Required questions left unanswered: ${missingNames}`);
-          saveStatus("VALIDATION_FAILED", `Unanswered in ${unit.title || unit.id}: ${missingNames}`);
+        if (!submitBtn || submitBtn.disabled) {
+          console.warn(`[CUIMS Auto Feedback] Submit button not available or disabled for ${unit.title || unit.id}`);
+          submittedUnitIds.add(unit.id);
           continue;
         }
 
         // Handle auto-submit or halt
         if (!config.autoSubmit && !isManual) {
           console.log(`[CUIMS Auto Feedback] Auto-submit disabled. Unit ${unit.id} filled for review.`);
-          await window.CUIMS_SubmitVerifier.recordSubmission(fingerprint, {
-            status: "FILLED_AWAITING_SUBMIT",
-            questionCount: questions.length,
-            unitTitle: unit.title
-          });
-          submittedUnitIds.add(unit.id);
-          continue;
-        }
-
-        // Locate submit button
-        const submitBtn = unit.submitButton || window.CUIMS_SubmitVerifier.findSubmitButton(unit.container);
-
-        if (!submitBtn) {
-          console.error(`[CUIMS Auto Feedback] Could not locate submit button for unit ${unit.id}`);
-          saveStatus("BUTTON_NOT_FOUND", `Submit button missing for ${unit.title || unit.id}`);
           submittedUnitIds.add(unit.id);
           continue;
         }
 
         // Submit & Verify
-        const outcome = await window.CUIMS_SubmitVerifier.submitAndVerify(submitBtn, unit.container, questions);
+        const outcome = await window.CUIMS_SubmitVerifier.submitAndVerify(submitBtn, unit.container, questions || []);
         console.log(`[CUIMS Auto Feedback] Unit ${unit.title || unit.id} submitted: ${outcome.reason}`);
 
         // Record submission

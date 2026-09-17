@@ -385,74 +385,80 @@
       }
     }
 
-    // 2. Look for multiple distinct forms or feedback containers
-    const unitCandidates = [];
+    // 2. Button-Centric Multi-Unit Detection
+    // On pages where all teachers/subjects are shown on one long page, each section has its own submit button.
+    const allButtons = Array.from(
+      rootDoc.querySelectorAll(
+        'button, input[type="submit"], input[type="button"], a.btn, [role="button"], a[onclick*="submit" i], a[onclick*="save" i]'
+      )
+    );
 
-    // Check multiple forms on page
-    const forms = Array.from(rootDoc.querySelectorAll("form")).filter((f) => {
-      return !f.querySelector('input[type="password"]') && f.querySelectorAll('input[type="radio"], select').length >= 2;
-    });
-
-    if (forms.length > 1) {
-      for (let i = 0; i < forms.length; i++) {
-        const f = forms[i];
-        const analysis = analyzeCandidate(f);
-        if (analysis.detected) {
-          const submitBtn = findUnitSubmitButton(f);
-          unitCandidates.push({
-            id: f.id || `form_${i + 1}`,
-            container: f,
-            title: extractUnitContext(f, i + 1),
-            type: "form",
-            submitButton: submitBtn,
-            confidence: analysis.confidence
-          });
-        }
-      }
-      if (unitCandidates.length > 1) {
-        return unitCandidates;
+    const submitButtons = [];
+    for (const btn of allButtons) {
+      if (!isVisible(btn) || btn.disabled) continue;
+      const text = normalize(btn.value || btn.innerText || btn.getAttribute("aria-label") || "");
+      if (AVOID_KEYWORDS.some((w) => text.includes(w))) continue;
+      if (SUBMIT_BUTTON_KEYWORDS.some((kw) => text === kw || text.includes(kw))) {
+        submitButtons.push(btn);
       }
     }
 
-    // Check multiple feedback tables or panels (e.g. CUIMS multi-teacher grid)
-    const multiContainers = Array.from(
-      rootDoc.querySelectorAll(
-        'table.feedback-grid, table[id*="feedback" i], table[id*="grid" i], .feedback-panel, .feedback-card, .feedback-section, .panel, .card'
-      )
-    ).filter((el) => {
-      return el.querySelectorAll('input[type="radio"], select').length >= 2 && isVisible(el);
-    });
+    if (submitButtons.length > 1) {
+      const units = [];
+      for (let i = 0; i < submitButtons.length; i++) {
+        const btn = submitButtons[i];
 
-    if (multiContainers.length > 1) {
-      const unitsWithOwnButtons = [];
-      for (let i = 0; i < multiContainers.length; i++) {
-        const el = multiContainers[i];
-        const analysis = analyzeCandidate(el);
-        if (analysis.detected || el.querySelectorAll('input[type="radio"], select').length >= 2) {
-          const submitBtn = findUnitSubmitButton(el);
-          if (submitBtn) {
-            unitsWithOwnButtons.push({
-              id: el.id || `unit_${i + 1}`,
-              container: el,
-              title: extractUnitContext(el, i + 1),
-              type: "table_unit",
-              submitButton: submitBtn,
-              confidence: analysis.confidence || 80
-            });
+        // Walk up from button to find the enclosing section that contains its questions
+        // without including any of the other submit buttons
+        let curr = btn.parentElement;
+        let bestContainer = null;
+
+        while (curr && curr !== rootDoc.body && curr !== rootDoc.documentElement) {
+          const inputs = curr.querySelectorAll('input[type="radio"], select, textarea');
+          const otherButtons = submitButtons.filter((b) => b !== btn && curr.contains(b));
+
+          if (inputs.length >= 1 && otherButtons.length === 0) {
+            bestContainer = curr;
+          } else if (otherButtons.length > 0 && bestContainer) {
+            break;
+          }
+          curr = curr.parentElement;
+        }
+
+        // Fallback: search for previous sibling table or panel
+        if (!bestContainer) {
+          let prev = btn.previousElementSibling || (btn.parentElement ? btn.parentElement.previousElementSibling : null);
+          while (prev) {
+            if (prev.querySelectorAll('input[type="radio"], select').length >= 1) {
+              bestContainer = prev;
+              break;
+            }
+            prev = prev.previousElementSibling;
           }
         }
+
+        const container = bestContainer || btn.parentElement || rootDoc;
+        const title = extractUnitContext(container, i + 1);
+
+        units.push({
+          id: btn.id || btn.name || `unit_btn_${i + 1}`,
+          container,
+          submitButton: btn,
+          title: title || `Teacher / Course ${i + 1}`,
+          type: "multi_button_unit",
+          confidence: 90
+        });
       }
 
-      // If each table/panel has its own submit button, return them as separate units
-      if (unitsWithOwnButtons.length > 1) {
-        return unitsWithOwnButtons;
+      if (units.length > 1) {
+        return units;
       }
     }
 
-    // 3. Fallback: single master container (e.g. one form or body holding everything)
+    // 3. Fallback: single master container (e.g. all questions sharing one master submit button)
     const single = detectFeedbackForm(rootDoc);
     if (single.detected && single.container) {
-      const submitBtn = findUnitSubmitButton(single.container);
+      const submitBtn = submitButtons[0] || findUnitSubmitButton(single.container);
       return [
         {
           id: single.container.id || "main_feedback_form",

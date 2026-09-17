@@ -245,7 +245,15 @@
 
     const wasInDOM = document.body.contains(container);
 
-    // Dispatch realistic events AND native click
+    // Auto-accept any confirmation dialogs (e.g. "Are you sure you want to submit?")
+    try {
+      const confirmScript = document.createElement("script");
+      confirmScript.textContent = "window.confirm = () => true; window.alert = () => true;";
+      (document.head || document.documentElement).appendChild(confirmScript);
+      confirmScript.remove();
+    } catch (e) {}
+
+    // Dispatch realistic events AND native click + main world trigger for ASP.NET
     try {
       submitButton.focus();
       const clickEv = new MouseEvent("click", { bubbles: true, cancelable: true, view: window });
@@ -254,11 +262,34 @@
         submitButton.click();
       }
     } catch (err) {
-      console.warn("[CUIMS Auto Feedback] Click event error, invoking direct click:", err);
-      if (typeof submitButton.click === "function") {
-        submitButton.click();
-      }
+      console.warn("[CUIMS Auto Feedback] Click event dispatch error:", err);
     }
+
+    // Main world execution for ASP.NET __doPostBack or inline onclick
+    try {
+      const onclickAttr = submitButton.getAttribute("onclick");
+      const hrefAttr = submitButton.getAttribute("href");
+      const btnId = submitButton.id;
+      const btnName = submitButton.name;
+
+      if (onclickAttr || (hrefAttr && hrefAttr.startsWith("javascript:")) || btnId || btnName) {
+        const script = document.createElement("script");
+        script.textContent = `
+          (function() {
+            try {
+              window.confirm = () => true;
+              window.alert = () => true;
+              const el = ${btnId ? `document.getElementById('${btnId}')` : "null"} || ${btnName ? `document.querySelector('[name="${btnName}"]')` : "null"};
+              if (el) {
+                el.click();
+              }
+            } catch(e) {}
+          })();
+        `;
+        (document.head || document.documentElement).appendChild(script);
+        script.remove();
+      }
+    } catch (e) {}
 
     // Wait and verify success via dynamic DOM observation
     return new Promise((resolve) => {

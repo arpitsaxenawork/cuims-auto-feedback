@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>CUIMS Portal - Student Faculty Feedback Simulator</title>
+  <style>
+    body {
+      font-family: Arial, Helvetica, sans-serif;
+      background-color: #f4f6f9;
+      margin: 0;
+      padding: 0;
+      color: #333;
+    }
+    header {
+      background-color: #c9252c; /* CU Red */
+      color: #fff;
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .user-info {
+      font-size: 13px;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 25px auto;
+      background: #fff;
+      padding: 24px;
+      border-radius: 4px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .page-title {
+      font-size: 16px;
+      font-weight: bold;
+      color: #c9252c;
+      border-bottom: 2px solid #e2e8f0;
+      padding-bottom: 8px;
+      margin-bottom: 16px;
+    }
+    .info-bar {
+      background-color: #ebf8ff;
+      border-left: 4px solid #3182ce;
+      padding: 10px 14px;
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+    table.feedback-grid {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+      font-size: 13px;
+    }
+    table.feedback-grid th, table.feedback-grid td {
+      border: 1px solid #cbd5e0;
+      padding: 10px;
+      text-align: left;
+    }
+    table.feedback-grid th {
+      background-color: #f7fafc;
+      font-weight: 600;
+      color: #2d3748;
+    }
+    .col-center {
+      text-align: center !important;
+    }
+    .form-group {
+      margin-bottom: 18px;
+    }
+    .form-group label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #cbd5e0;
+      border-radius: 4px;
+      box-sizing: border-box;
+      font-size: 13px;
+    }
+    .btn-submit {
+      background-color: #c9252c;
+      color: white;
+      border: none;
+      padding: 10px 24px;
+      font-size: 14px;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-submit:hover {
+      background-color: #a81c22;
+    }
+    .success-alert {
+      display: none;
+      background-color: #def7ec;
+      border: 1px solid #31c48d;
+      color: #03543f;
+      padding: 16px;
+      border-radius: 4px;
+      margin-bottom: 20px;
+      font-weight: bold;
+    }
+    .demo-controls {
+      margin-top: 30px;
+      padding: 14px;
+      background: #edf2f7;
+      border-radius: 4px;
+      font-size: 12px;
+      border: 1px dashed #a0aec0;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h2>CHANDIGARH UNIVERSITY INFORMATION MANAGEMENT SYSTEM (CUIMS)</h2>
+    <div class="user-info">Student ID: 22BCS10101 | Semester: 5</div>
+  </header>
+
+  <div class="container">
+    <div id="successBanner" class="success-alert">
+      ✓ Feedback submitted successfully! Your responses have been saved into the CUIMS academic database.
+    </div>
+
+    <div id="feedbackFormContainer">
+      <div class="page-title">Faculty & Course Teaching Evaluation Feedback Form (Mandatory)</div>
+      
+      <div class="info-bar">
+        Please rate the faculty's teaching and course delivery across all parameters on a scale of 1 to 5. All fields marked (*) are required.
+      </div>
+
+      <form id="aspnetForm" onsubmit="handleFormSubmit(event)">
+        <!-- Table Matrix representation used by CUIMS ERP -->
+        <table class="feedback-grid">
+          <thead>
+            <tr>
+              <th style="width: 50px;">S.No.</th>
+              <th>Evaluation Parameter / Question *</th>
+              <th class="col-center" style="width: 70px;">1<br><small>Poor</small></th>
+              <th class="col-center" style="width: 70px;">2<br><small>Average</small></th>
+              <th class="col-center" style="width: 70px;">3<br><small>Good</small></th>
+              <th class="col-center" style="width: 70px;">4<br><small>Very Good</small></th>
+              <th class="col-center" style="width: 70px;">5<br><small>Excellent</small></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>1</td>
+              <td>Punctuality and regularity of the faculty in taking classes *</td>
+              <td class="col-center"><input type="radio" name="q1" value="1" required></td>
+              <td class="col-center"><input type="radio" name="q1" value="2"></td>
+              <td class="col-center"><input type="radio" name="q1" value="3"></td>
+              <td class="col-center"><input type="radio" name="q1" value="4"></td>
+              <td class="col-center"><input type="radio" name="q1" value="5"></td>
+            </tr>
+            <tr>
+              <td>2</td>
+              <td>Faculty's knowledge, command over subject, and clarity of explanation *</td>
+              <td class="col-center"><input type="radio" name="q2" value="1" required></td>
+              <td class="col-center"><input type="radio" name="q2" value="2"></td>
+              <td class="col-center"><input type="radio" name="q2" value="3"></td>
+              <td class="col-center"><input type="radio" name="q2" value="4"></td>
+              <td class="col-center"><input type="radio" name="q2" value="5"></td>
+            </tr>
+            <tr>
+              <td>3</td>
+              <td>Coverage of the syllabus content and curriculum on time *</td>
+              <td class="col-center"><input type="radio" name="q3" value="1" required></td>
+              <td class="col-center"><input type="radio" name="q3" value="2"></td>
+              <td class="col-center"><input type="radio" name="q3" value="3"></td>
+              <td class="col-center"><input type="radio" name="q3" value="4"></td>
+              <td class="col-center"><input type="radio" name="q3" value="5"></td>
+            </tr>
+            <tr>
+              <td>4</td>
+              <td>Classroom discipline, interactivity, and willingness to resolve student doubts *</td>
+              <td class="col-center"><input type="radio" name="q4" value="1" required></td>
+              <td class="col-center"><input type="radio" name="q4" value="2"></td>
+              <td class="col-center"><input type="radio" name="q4" value="3"></td>
+              <td class="col-center"><input type="radio" name="q4" value="4"></td>
+              <td class="col-center"><input type="radio" name="q4" value="5"></td>
+            </tr>
+            <tr>
+              <td>5</td>
+              <td>Fairness and transparency in evaluation and internal assessments *</td>
+              <td class="col-center"><input type="radio" name="q5" value="1" required></td>
+              <td class="col-center"><input type="radio" name="q5" value="2"></td>
+              <td class="col-center"><input type="radio" name="q5" value="3"></td>
+              <td class="col-center"><input type="radio" name="q5" value="4"></td>
+              <td class="col-center"><input type="radio" name="q5" value="5"></td>
+            </tr>
+            <tr>
+              <td>6</td>
+              <td>Quality of laboratory infrastructure and computer lab equipment *</td>
+              <td class="col-center"><input type="radio" name="q6" value="1" required></td>
+              <td class="col-center"><input type="radio" name="q6" value="2"></td>
+              <td class="col-center"><input type="radio" name="q6" value="3"></td>
+              <td class="col-center"><input type="radio" name="q6" value="4"></td>
+              <td class="col-center"><input type="radio" name="q6" value="5"></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Dropdown Question -->
+        <div class="form-group">
+          <label for="overallSatisfaction">Overall rating of library learning resources and digital portal *</label>
+          <select id="overallSatisfaction" class="form-control" required>
+            <option value="">-- Select an option --</option>
+            <option value="Poor">Poor</option>
+            <option value="Average">Average</option>
+            <option value="Good">Good</option>
+            <option value="Very Good">Very Good</option>
+            <option value="Excellent">Excellent</option>
+          </select>
+        </div>
+
+        <!-- Textarea Question -->
+        <div class="form-group">
+          <label for="studentSuggestions">Suggestions or remarks for improvement (Optional)</label>
+          <textarea id="studentSuggestions" class="form-control" rows="3" placeholder="Enter remarks..."></textarea>
+        </div>
+
+        <!-- Submit Button -->
+        <div style="text-align: right; margin-top: 20px;">
+          <input type="submit" id="btnSubmitFeedback" class="btn-submit" value="Submit Feedback">
+        </div>
+      </form>
+    </div>
+
+    <div class="demo-controls">
+      <b>Developer / Testing Notice:</b><br>
+      This page replicates CUIMS feedback markup for testing the Chrome Extension.<br>
+      When the extension is active, it detects this form automatically, answers each question per rules, and clicks Submit.
+    </div>
+  </div>
+
+  <script>
+    function handleFormSubmit(e) {
+      e.preventDefault();
+      document.getElementById('feedbackFormContainer').style.display = 'none';
+      document.getElementById('successBanner').style.display = 'block';
+      console.log('Mock CUIMS form successfully submitted and recorded.');
+    }
+  </script>
+</body>
+</html>

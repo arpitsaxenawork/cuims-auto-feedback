@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CUIMS Auto Feedback</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <!-- Header -->
+    <header class="header">
+      <div class="header-brand">
+        <div class="logo-icon">⚡</div>
+        <div>
+          <h1 class="title">CUIMS Auto Feedback</h1>
+          <span class="version">v1.0.0</span>
+        </div>
+      </div>
+      <div id="statusBadge" class="badge badge-active">
+        <span class="badge-dot"></span>
+        <span id="statusText">Active</span>
+      </div>
+    </header>
+
+    <!-- Controls Section -->
+    <section class="section">
+      <div class="section-title">Automation Settings</div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <label for="enableToggle" class="setting-label">Enable Auto-Fill</label>
+          <span class="setting-desc">Detect & automatically answer feedback forms</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="enableToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <label for="autoSubmitToggle" class="setting-label">Enable Auto-Submit</label>
+          <span class="setting-desc">Automatically click submit after validation</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="autoSubmitToggle" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </section>
+
+    <!-- Preferences Section -->
+    <section class="section">
+      <div class="section-title">Default Responses</div>
+
+      <div class="input-group">
+        <label class="input-label" for="defaultRating">Default Rating (1 to 5)</label>
+        <div class="rating-selector">
+          <input type="range" id="defaultRating" min="1" max="5" value="5" step="1">
+          <span id="ratingDisplay" class="rating-display">5 ★</span>
+        </div>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="dropdownDefault">Default Scale / Dropdown</label>
+        <select id="dropdownDefault" class="styled-select">
+          <option value="Excellent">Excellent</option>
+          <option value="Very Good">Very Good</option>
+          <option value="Good">Good</option>
+          <option value="Strongly Agree">Strongly Agree</option>
+          <option value="Agree">Agree</option>
+        </select>
+      </div>
+
+      <div class="input-group">
+        <label class="input-label" for="textResponse">Default Text Remark</label>
+        <input type="text" id="textResponse" class="styled-input" placeholder="Good" value="Good">
+      </div>
+    </section>
+
+    <!-- Telemetry & Status -->
+    <section class="section status-section">
+      <div class="section-title">Activity & Diagnostics</div>
+      
+      <div class="diagnostics-card">
+        <div class="diag-row">
+          <span class="diag-label">Last Form:</span>
+          <span id="lastFormDetected" class="diag-val">None</span>
+        </div>
+        <div class="diag-row">
+          <span class="diag-label">Submission:</span>
+          <span id="lastSubmissionStatus" class="diag-val diag-idle">Idle</span>
+        </div>
+        <div class="diag-row">
+          <span class="diag-label">Last Active:</span>
+          <span id="lastSubmissionTime" class="diag-val">--:--</span>
+        </div>
+      </div>
+
+      <div id="errorBox" class="error-box" style="display: none;">
+        <span class="error-icon">⚠️</span>
+        <span id="errorMessage" class="error-text">No error</span>
+      </div>
+    </section>
+
+    <!-- Actions -->
+    <footer class="footer">
+      <button id="btnTestNow" class="btn btn-primary">
+        <span>⚡ Test / Fill Current Page</span>
+      </button>
+      <button id="btnResetHistory" class="btn btn-secondary">
+        <span>🔄 Reset Submission History</span>
+      </button>
+    </footer>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

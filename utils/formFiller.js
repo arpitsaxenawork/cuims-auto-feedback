@@ -42,7 +42,7 @@
    */
   function setTextValue(inputEl, value) {
     if (!inputEl) return;
-    inputEl.focus();
+    try { inputEl.focus(); } catch (e) {}
 
     const proto = inputEl.tagName === "TEXTAREA" ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
     const nativeSetter = Object.getOwnPropertyDescriptor(proto, "value")?.set;
@@ -53,7 +53,7 @@
       inputEl.value = value;
     }
 
-    dispatchEvents(inputEl, ["input", "change", "blur"]);
+    dispatchEvents(inputEl, ["input", "change"]);
   }
 
   /**
@@ -61,7 +61,7 @@
    */
   function setSelectValue(selectEl, value) {
     if (!selectEl) return false;
-    selectEl.focus();
+    try { selectEl.focus(); } catch (e) {}
 
     let matched = false;
     for (let i = 0; i < selectEl.options.length; i++) {
@@ -76,7 +76,7 @@
       selectEl.selectedIndex = selectEl.options.length - 1;
     }
 
-    dispatchEvents(selectEl, ["input", "change", "blur"]);
+    dispatchEvents(selectEl, ["input", "change"]);
     return true;
   }
 
@@ -85,14 +85,18 @@
    */
   function clickRadioOrButton(element) {
     if (!element) return false;
-    element.focus();
+    try { element.focus(); } catch (e) {}
 
     if (element.type === "radio") {
       element.checked = true;
     }
 
-    // Emulate realistic pointer/mouse click sequence
-    dispatchEvents(element, ["pointerdown", "mousedown", "click", "mouseup", "change"]);
+    try {
+      element.click();
+    } catch (e) {
+      dispatchEvents(element, ["click", "change"]);
+    }
+    dispatchEvents(element, ["change"]);
     return true;
   }
 

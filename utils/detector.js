@@ -276,9 +276,204 @@
     };
   }
 
+  /**
+   * Helper to extract a distinct title or context identifier from a unit
+   */
+  function extractUnitContext(container, fallbackIndex = 1) {
+    if (!container) return `unit_${fallbackIndex}`;
+
+    // 1. Look for headings inside or immediately preceding the container
+    const heading = container.querySelector("h1, h2, h3, h4, h5, h6, .card-title, .panel-title, .title, legend, caption, th.header");
+    if (heading && heading.textContent.trim()) {
+      return heading.textContent.trim().replace(/\s+/g, " ");
+    }
+
+    // Check preceding sibling heading
+    let prev = container.previousElementSibling;
+    while (prev) {
+      if (/^H[1-6]$/.test(prev.tagName) || prev.classList?.contains("title") || prev.classList?.contains("page-title")) {
+        const text = prev.textContent.trim().replace(/\s+/g, " ");
+        if (text) return text;
+      }
+      prev = prev.previousElementSibling;
+    }
+
+    // 2. Look for subject/faculty indicators in text or hidden inputs
+    const hiddenId = container.querySelector('input[type="hidden"][name*="Subject" i], input[type="hidden"][name*="Teacher" i], input[type="hidden"][name*="Faculty" i], input[type="hidden"][name*="Course" i]');
+    if (hiddenId && hiddenId.value) {
+      return `id_${hiddenId.value}`;
+    }
+
+    // 3. Fallback to container id or class
+    if (container.id) return container.id;
+    return `unit_${fallbackIndex}`;
+  }
+
+  /**
+   * Finds dedicated submit button for a specific unit/container
+   */
+  function findUnitSubmitButton(container) {
+    if (!container) return null;
+
+    // Search inside container first
+    const candidates = Array.from(
+      container.querySelectorAll('button, input[type="submit"], input[type="button"], a.btn, [role="button"]')
+    );
+
+    // If not directly inside, check immediate next sibling (e.g., button row right after table/panel)
+    let nextSib = container.nextElementSibling;
+    let lookahead = 0;
+    while (nextSib && lookahead < 3) {
+      const sibButtons = Array.from(
+        nextSib.querySelectorAll('button, input[type="submit"], input[type="button"], a.btn, [role="button"]')
+      );
+      if (sibButtons.length > 0) {
+        candidates.push(...sibButtons);
+        break;
+      }
+      if (nextSib.tagName === "BUTTON" || (nextSib.tagName === "INPUT" && (nextSib.type === "submit" || nextSib.type === "button"))) {
+        candidates.push(nextSib);
+        break;
+      }
+      nextSib = nextSib.nextElementSibling;
+      lookahead++;
+    }
+
+    for (const btn of candidates) {
+      if (!isVisible(btn)) continue;
+      const text = normalize(btn.value || btn.innerText || btn.getAttribute("aria-label") || "");
+      if (SUBMIT_BUTTON_KEYWORDS.some((kw) => text === kw || text.includes(kw))) {
+        return btn;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Detects all feedback units across the page.
+   * A unit is either:
+   * 1. A modal dialog (single unit).
+   * 2. Multiple distinct forms, cards, or tables that have their own submit button.
+   * 3. A single combined master unit (e.g. all tables sharing one global submit button).
+   */
+  function detectFeedbackUnits(rootDoc = document) {
+    // 1. Check active modal first
+    const modalSelectors = [
+      '.modal.show',
+      '.modal.in',
+      '.modal:not([style*="display: none"]):not([style*="display:none"])',
+      'dialog[open]',
+      '[role="dialog"]'
+    ];
+    for (const sel of modalSelectors) {
+      const modals = Array.from(rootDoc.querySelectorAll(sel));
+      for (const m of modals) {
+        const analysis = analyzeCandidate(m);
+        if (analysis.detected) {
+          const submitBtn = findUnitSubmitButton(m);
+          return [
+            {
+              id: m.id || "modal_feedback",
+              container: m,
+              title: extractUnitContext(m, 1),
+              type: "modal",
+              submitButton: submitBtn,
+              confidence: analysis.confidence
+            }
+          ];
+        }
+      }
+    }
+
+    // 2. Look for multiple distinct forms or feedback containers
+    const unitCandidates = [];
+
+    // Check multiple forms on page
+    const forms = Array.from(rootDoc.querySelectorAll("form")).filter((f) => {
+      return !f.querySelector('input[type="password"]') && f.querySelectorAll('input[type="radio"], select').length >= 2;
+    });
+
+    if (forms.length > 1) {
+      for (let i = 0; i < forms.length; i++) {
+        const f = forms[i];
+        const analysis = analyzeCandidate(f);
+        if (analysis.detected) {
+          const submitBtn = findUnitSubmitButton(f);
+          unitCandidates.push({
+            id: f.id || `form_${i + 1}`,
+            container: f,
+            title: extractUnitContext(f, i + 1),
+            type: "form",
+            submitButton: submitBtn,
+            confidence: analysis.confidence
+          });
+        }
+      }
+      if (unitCandidates.length > 1) {
+        return unitCandidates;
+      }
+    }
+
+    // Check multiple feedback tables or panels (e.g. CUIMS multi-teacher grid)
+    const multiContainers = Array.from(
+      rootDoc.querySelectorAll(
+        'table.feedback-grid, table[id*="feedback" i], table[id*="grid" i], .feedback-panel, .feedback-card, .feedback-section, .panel, .card'
+      )
+    ).filter((el) => {
+      return el.querySelectorAll('input[type="radio"], select').length >= 2 && isVisible(el);
+    });
+
+    if (multiContainers.length > 1) {
+      const unitsWithOwnButtons = [];
+      for (let i = 0; i < multiContainers.length; i++) {
+        const el = multiContainers[i];
+        const analysis = analyzeCandidate(el);
+        if (analysis.detected || el.querySelectorAll('input[type="radio"], select').length >= 2) {
+          const submitBtn = findUnitSubmitButton(el);
+          if (submitBtn) {
+            unitsWithOwnButtons.push({
+              id: el.id || `unit_${i + 1}`,
+              container: el,
+              title: extractUnitContext(el, i + 1),
+              type: "table_unit",
+              submitButton: submitBtn,
+              confidence: analysis.confidence || 80
+            });
+          }
+        }
+      }
+
+      // If each table/panel has its own submit button, return them as separate units
+      if (unitsWithOwnButtons.length > 1) {
+        return unitsWithOwnButtons;
+      }
+    }
+
+    // 3. Fallback: single master container (e.g. one form or body holding everything)
+    const single = detectFeedbackForm(rootDoc);
+    if (single.detected && single.container) {
+      const submitBtn = findUnitSubmitButton(single.container);
+      return [
+        {
+          id: single.container.id || "main_feedback_form",
+          container: single.container,
+          title: extractUnitContext(single.container, 1),
+          type: single.type || "page",
+          submitButton: submitBtn,
+          confidence: single.confidence
+        }
+      ];
+    }
+
+    return [];
+  }
+
   return {
     detectFeedbackForm,
+    detectFeedbackUnits,
     analyzeCandidate,
+    extractUnitContext,
+    findUnitSubmitButton,
     isVisible,
     POSITIVE_KEYWORDS,
     NEGATIVE_KEYWORDS

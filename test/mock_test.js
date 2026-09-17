@@ -100,5 +100,17 @@ const q5 = {
 const d5 = AnswerEngine.determineAnswer(q5, DEFAULT_CONFIG, QUESTION_RULES);
 assert(typeof d5.valueToSet === "string" && d5.valueToSet.length > 0, "Textarea receives structured response");
 
+// Test 6: Context-Aware Fingerprinting (Distinguishing identical questions for different teachers)
+const SubmitVerifier = require("../utils/submitVerifier.js");
+const identicalQuestions = [q1, q2, q3];
+const fpTeacher1 = SubmitVerifier.generateFormFingerprint(identicalQuestions, "https://uims.cuchd.in/UIMS/frmFeedback.aspx", "Dr. Sharma (Data Structures)");
+const fpTeacher2 = SubmitVerifier.generateFormFingerprint(identicalQuestions, "https://uims.cuchd.in/UIMS/frmFeedback.aspx", "Prof. Verma (Web Development)");
+assert(fpTeacher1 !== fpTeacher2, "Different teachers with identical questions produce distinct fingerprints");
+
+// Test 7: Performance configuration defaults
+assert(DEFAULT_CONFIG.typingDelayMs <= 5, "typingDelayMs is set for snappy input (< 5ms)");
+assert(DEFAULT_CONFIG.detectionDelayMs <= 300, "detectionDelayMs is set for fast detection (<= 300ms)");
+assert(DEFAULT_CONFIG.multiFormIntervalMs >= 200, "multiFormIntervalMs exists to space out ASP.NET submissions");
+
 console.log(`\nResults: ${passed} passed, ${failed} failed.\n`);
 if (failed > 0) process.exit(1);

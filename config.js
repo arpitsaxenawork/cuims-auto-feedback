@@ -11,8 +11,9 @@ const DEFAULT_CONFIG = {
   textResponse: "Good",
   dropdownDefault: "Excellent",
   checkboxDefault: true,
-  detectionDelayMs: 600,
-  typingDelayMs: 15,
+  detectionDelayMs: 200,
+  typingDelayMs: 2,
+  multiFormIntervalMs: 350,
   duplicateWindowMinutes: 60,
   logPrefix: "[CUIMS Auto Feedback]"
 };

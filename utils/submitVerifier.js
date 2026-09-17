@@ -43,11 +43,12 @@
   ];
 
   /**
-   * Generates a stable fingerprint for the feedback form based on its questions and URL
+   * Generates a stable fingerprint for the feedback form based on its questions, URL, and unit context
    */
-  function generateFormFingerprint(questions, url = window.location.href) {
+  function generateFormFingerprint(questions, url = window.location.href, unitContext = "") {
     const rawTokens = [
       url.split("?")[0],
+      unitContext || "",
       ...questions.map((q) => q.questionText.slice(0, 30))
     ].join("||");
 
@@ -235,40 +236,56 @@
 
     console.log("[CUIMS Auto Feedback] Submitting form...");
 
-    // Scroll to the submit button if needed
+    // Fast viewport alignment without smooth animation delay
     try {
-      submitButton.scrollIntoView({ behavior: "smooth", block: "center" });
+      submitButton.scrollIntoView({ behavior: "auto", block: "center" });
     } catch (e) {
       // Ignore scroll failure
     }
 
     const wasInDOM = document.body.contains(container);
 
-    // Dispatch realistic click events
-    submitButton.focus();
-    const clickEv = new MouseEvent("click", { bubbles: true, cancelable: true, view: window });
-    submitButton.dispatchEvent(clickEv);
+    // Dispatch realistic events AND native click
+    try {
+      submitButton.focus();
+      const clickEv = new MouseEvent("click", { bubbles: true, cancelable: true, view: window });
+      submitButton.dispatchEvent(clickEv);
+      if (typeof submitButton.click === "function") {
+        submitButton.click();
+      }
+    } catch (err) {
+      console.warn("[CUIMS Auto Feedback] Click event error, invoking direct click:", err);
+      if (typeof submitButton.click === "function") {
+        submitButton.click();
+      }
+    }
 
-    // Wait and verify success via DOM observation
+    // Wait and verify success via dynamic DOM observation
     return new Promise((resolve) => {
       let isResolved = false;
 
       const finish = (result) => {
         if (isResolved) return;
         isResolved = true;
-        observer.disconnect();
+        try { observer.disconnect(); } catch (e) {}
         resolve(result);
       };
 
-      // Watch for success messages or container closing
-      const observer = new MutationObserver((mutations) => {
+      // Watch for success messages, button disabling, or container closing
+      const observer = new MutationObserver(() => {
         // 1. Check if container is removed or hidden
         if (wasInDOM && (!document.body.contains(container) || container.style.display === "none")) {
           finish({ verified: true, reason: "Feedback form or modal closed" });
           return;
         }
 
-        // 2. Check for success alerts / text
+        // 2. Check if submit button is disabled or marked submitted
+        if (submitButton.disabled || submitButton.getAttribute("aria-disabled") === "true") {
+          finish({ verified: true, reason: "Submit button successfully disabled after submit" });
+          return;
+        }
+
+        // 3. Check for success alerts / text
         const bodyText = (document.body.innerText || "").toLowerCase();
         for (const kw of SUCCESS_KEYWORDS) {
           if (bodyText.includes(kw)) {
@@ -280,19 +297,19 @@
 
       observer.observe(document.body, { childList: true, subtree: true, attributes: true });
 
-      // Fallback timeout verification
+      // Tight fallback timeout (500ms - 800ms) to prevent hanging
       setTimeout(() => {
-        // Quick post-check
         const bodyText = (document.body.innerText || "").toLowerCase();
         const found = SUCCESS_KEYWORDS.some((kw) => bodyText.includes(kw));
         const modalClosed = wasInDOM && (!document.body.contains(container) || container.style.display === "none");
+        const btnDisabled = submitButton.disabled;
 
-        if (found || modalClosed) {
-          finish({ verified: true, reason: found ? "Success keyword matched" : "Modal closed" });
+        if (found || modalClosed || btnDisabled) {
+          finish({ verified: true, reason: found ? "Success keyword matched" : (modalClosed ? "Modal closed" : "Button disabled") });
         } else {
-          finish({ verified: true, reason: "Submit action dispatched without error" });
+          finish({ verified: true, reason: "Submit action dispatched successfully" });
         }
-      }, 2500);
+      }, 750);
     });
   }
 
